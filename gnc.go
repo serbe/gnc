@@ -55,7 +55,14 @@ func main() {
     if err != nil {
 		panic(err)
 	}
+    jsonResultString, err := strconv.Unquote(string(jsonResult)) 
+    if err != nil {
+		panic(err)
+	}
     var result postResult
-    err = json.Unmarshal([]byte(jsonResult), &result)
+    err = json.Unmarshal([]byte(jsonResultString), &result)
+    // fmt.Println(string(body))
+    // fmt.Println(string(jsonResult))
+    // fmt.Println(strconv.Unquote(string(jsonResult)))
     fmt.Println(result, err)
 }
