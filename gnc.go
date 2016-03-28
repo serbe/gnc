@@ -35,7 +35,7 @@ func main() {
     var client http.Client
     var data postData
     postURL := "https://accounts.google.com/InputValidator?resource=SignUp"
-    data.Input01.GmailAddress = "hurdman"
+    data.Input01.GmailAddress = "oldhurd"
     data.Input01.Input = "GmailAddress"
     data.Locale = "ru"
     postJson, err := json.Marshal(data)
@@ -61,8 +61,5 @@ func main() {
 	}
     var result postResult
     err = json.Unmarshal([]byte(jsonResultString), &result)
-    // fmt.Println(string(body))
-    // fmt.Println(string(jsonResult))
-    // fmt.Println(strconv.Unquote(string(jsonResult)))
-    fmt.Println(result, err)
+    fmt.Println(result.Input01.ErrorData, result.Input01.Valid)
 }
