@@ -9,6 +9,7 @@ import (
     "io/ioutil"
     "bufio"
     "os"
+	"strings"
 )
 
 type postData struct {
@@ -60,6 +61,25 @@ func writeLine(line string, filename string) error {
   return w.Flush()
 }
 
+func existsFile(file string) bool {
+	_, err := os.Stat(file)
+	if err == nil {
+		return true
+	}
+	if os.IsNotExist(err) {
+		return createFile(file)
+	}
+	return true
+}
+
+func createFile(file string) bool {
+    _, err := os.Create(file)
+    if err != nil {
+        return false
+    }
+    return true
+}
+
 func getResponce(name string) (postResult, error) {
     var ( 
     client http.Client
@@ -105,10 +125,12 @@ func main() {
         if len(word) == 6 {
             responce, err := getResponce(word)
             if err != nil {
-                writeLine(word + ", ", "err.txt")
+                writeLine(word + ", " + fmt.Sprint(err), "err.txt")
             }
             if responce.Input01.Valid == "true" {
-                writeLine(word + ", ", "valid.txt")
+                writeLine(word, "valid.txt")
+            } else {
+                writeLine(word + ", " + strings.Join(responce.Input01.ErrorData, ", "), "novalid.txt")
             }
         }
     }
