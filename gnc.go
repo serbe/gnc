@@ -140,7 +140,9 @@ func postQuery(word string) postResult {
 	resp, err := client.Do(req)
 	if err != nil {
 		if quality > 3 {
-			proxyList = append(proxyList[:currentProxy], proxyList[currentProxy+1:]...)
+			writeLine(host, "badproxy.txt")
+            proxyList = append(proxyList[:currentProxy], proxyList[currentProxy+1:]...)
+            
 		}
 		result.Error = err
 		return result
@@ -185,6 +187,7 @@ func main() {
     existsFile("novalid.txt")
     os.Remove("goodproxy.txt")
     createFile("goodproxy.txt")
+    existsFile("badproxy.txt")
 
 	runtime.GOMAXPROCS(4)
 
@@ -205,9 +208,6 @@ func main() {
 				r     postResult
 			)
 			r = postQuery(word)
-			// if r.Error != nil {
-			// 	writeLine(word+", " + r.Proxy + ", " + fmt.Sprint(r.Error), "err.txt")
-			// }
 			letters := word[0:2]
 			if twoLetter != letters {
 				fmt.Println(letters)
