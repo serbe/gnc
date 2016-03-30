@@ -200,13 +200,13 @@ func main() {
 	proxyList = proxyes
 
 	for _, word := range lines {
-		if len(word) == 6 {
+		if len(word) == 7 {
 			var (
 				r     postResult
 			)
 			r = postQuery(word)
 			// if r.Error != nil {
-			// 	writeLine(word+", "+r.Proxy+", "+fmt.Sprint(r.Error), "err.txt")
+			// 	writeLine(word+", " + r.Proxy + ", " + fmt.Sprint(r.Error), "err.txt")
 			// }
 			letters := word[0:2]
 			if twoLetter != letters {
