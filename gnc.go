@@ -183,10 +183,10 @@ func main() {
 		valid        int
 	)
 
-    existsFile("valid.txt")
-    existsFile("novalid.txt")
     os.Remove("goodproxy.txt")
     createFile("goodproxy.txt")
+    existsFile("valid.txt")
+    existsFile("novalid.txt")
     existsFile("badproxy.txt")
 
 	runtime.GOMAXPROCS(4)
@@ -216,6 +216,7 @@ func main() {
 			if r.Input01.Valid == "true" {
 				valid++
 				writeLine(word, "valid.txt")
+                fmt.Println("bingo: ", word)
 				if valid == 10 {
 					panic(err)
 				}
