@@ -263,14 +263,14 @@ func main() {
 			}
 			if r.Input01.Valid == "true" {
 				valid++
-				writeLine(word, App.conf.Name.ValidName+"valid"+App.strLen+".txt")
+				writeLine(word, App.conf.Name.ValidName+App.strLen+".txt")
 				fmt.Println("bingo: ", word)
 				if valid == 10 {
 					panic(err)
 				}
 			} else {
 				valid = 0
-				writeLine(fmt.Sprintf("%s %v", word, r.Input01.ErrorData), App.conf.Name.NoValidName+"novalid"+App.strLen+".txt")
+				writeLine(fmt.Sprintf("%s %v", word, r.Input01.ErrorData), App.conf.Name.NoValidName+App.strLen+".txt")
 			}
 		}
 	}
