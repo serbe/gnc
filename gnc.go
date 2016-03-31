@@ -13,8 +13,6 @@ import (
 	"strconv"
 	"strings"
 	"time"
-
-	"github.com/BurntSushi/toml"
 )
 
 var (
@@ -25,33 +23,31 @@ var (
 )
 
 type app struct {
-	config tomlConfig
+	conf config
 	strLen string
 }
 
-type tomlConfig struct {
-	Title     string
-	Len       int
-	Files     fileNames
-	Positions struct {
+type config struct {
+	Len  int `json:"len"`
+	Name struct {
+		BadProxy    string `json:"bad_proxy"`
+		GoodProxy   string `json:"good_proxy"`
+		NoValidName string `json:"no_valid_name"`
+		ProxyList   string `json:"proxy_list"`
+		ValidName   string `json:"valid_name"`
+		Words       string `json:"words"`
+	} `json:"name"`
+	Position struct {
 		Word6 struct {
-			letters string
-			word    string
-		}
+			Letters string `json:"letters"`
+			Word    string `json:"word"`
+		} `json:"word6"`
 		Word7 struct {
-			letters string
-			word    string
-		}
-	}
-}
-
-type fileNames struct {
-	proxyList   string
-	goodProxy   string
-	badProxy    string
-	validName   string
-	noValidName string
-	words       string
+			Letters string `json:"letters"`
+			Word    string `json:"word"`
+		} `json:"word7"`
+	} `json:"position"`
+	Title string `json:"title"`
 }
 
 type proxy struct {
@@ -81,6 +77,16 @@ type postResult struct {
 	Locale string `json:"Locale"`
 	Proxy  string
 	Error  error
+}
+
+func getConfig() (config, error) {
+	c := config{}
+	file, err := ioutil.ReadFile("./config.json")
+	if err != nil {
+		return c, err
+	}
+	err = json.Unmarshal(file, &c)
+	return c, err
 }
 
 func readLines(path string) ([]string, error) {
@@ -174,7 +180,7 @@ func (a *app) postQuery(word string) postResult {
 	resp, err := client.Do(req)
 	if err != nil {
 		if quality > 3 {
-			writeLine(host, App.config.Files.badProxy + ".txt")
+			writeLine(host, App.conf.Name.BadProxy+".txt")
 			proxyList = append(proxyList[:currentProxy], proxyList[currentProxy+1:]...)
 
 		}
@@ -200,7 +206,7 @@ func (a *app) postQuery(word string) postResult {
 }
 
 func (a *app) getProxyList() ([]proxy, error) {
-	dat, err := ioutil.ReadFile(App.config.Files.proxyList + ".txt")
+	dat, err := ioutil.ReadFile(App.conf.Name.ProxyList + ".txt")
 	dats := strings.Split(strings.TrimSuffix(string(dat), "\n"), "\n")
 	var proxyList []proxy
 	for _, host := range dats {
@@ -216,22 +222,24 @@ func main() {
 		twoLetter string
 		valid     int
 	)
-
-	if _, err := toml.DecodeFile("example.toml", &App.config); err != nil {
+	conf, err := getConfig()
+    if err != nil {
+		fmt.Println(err)
 		panic(err)
 	}
 
-	App.strLen = fmt.Sprintf("%d", App.config.Len)
+    App.conf = conf
+	App.strLen = fmt.Sprintf("%d", App.conf.Len)
 
-	os.Remove(App.config.Files.goodProxy + ".txt")
-	createFile(App.config.Files.goodProxy + ".txt")
-	existsFile(App.config.Files.validName + "valid" + App.strLen + ".txt")
-	existsFile(App.config.Files.noValidName + "novalid" + App.strLen + ".txt")
-	existsFile(App.config.Files.badProxy + ".txt")
+	os.Remove(App.conf.Name.GoodProxy + ".txt")
+	createFile(App.conf.Name.GoodProxy + ".txt")
+	existsFile(App.conf.Name.ValidName + App.strLen + ".txt")
+	existsFile(App.conf.Name.NoValidName + App.strLen + ".txt")
+	existsFile(App.conf.Name.BadProxy + ".txt")
 
 	runtime.GOMAXPROCS(4)
 
-	lines, err := readLines(App.config.Files.badProxy + ".txt")
+	lines, err := readLines(App.conf.Name.Words + ".txt")
 	if err != nil {
 		panic(err)
 	}
@@ -243,7 +251,7 @@ func main() {
 	proxyList = proxyes
 
 	for _, word := range lines {
-		if len(word) == App.config.Len {
+		if len(word) == App.conf.Len {
 			var (
 				r postResult
 			)
@@ -255,18 +263,18 @@ func main() {
 			}
 			if r.Input01.Valid == "true" {
 				valid++
-				writeLine(word, App.config.Files.validName + "valid" + App.strLen + ".txt")
+				writeLine(word, App.conf.Name.ValidName+"valid"+App.strLen+".txt")
 				fmt.Println("bingo: ", word)
 				if valid == 10 {
 					panic(err)
 				}
 			} else {
 				valid = 0
-				writeLine(fmt.Sprintf("%s %v", word, r.Input01.ErrorData), App.config.Files.noValidName + "novalid" + App.strLen + ".txt")
+				writeLine(fmt.Sprintf("%s %v", word, r.Input01.ErrorData), App.conf.Name.NoValidName+"novalid"+App.strLen+".txt")
 			}
 		}
 	}
 	for _, i := range proxyList {
-		writeLine(i.host, App.config.Files.goodProxy + ".txt")
+		writeLine(i.host, App.conf.Name.GoodProxy+".txt")
 	}
 }

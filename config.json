@@ -1,0 +1,22 @@
+{
+    "title": "Google name checker",
+    "len": 6,
+    "name": {
+        "proxy_list": "proxy",
+        "good_proxy": "goodproxy",
+        "bad_proxy": "badproxy",
+        "valid_name": "valid",
+        "no_valid_name": "novalid",
+        "words": "words"
+    },
+    "position": {
+        "word6": {
+            "letters": "",
+            "word": ""
+        },
+        "word7": {
+            "letters": "",
+            "word": ""
+        }
+    }
+}
