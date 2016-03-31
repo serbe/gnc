@@ -4,7 +4,8 @@ lyfkie
 oekist
 pirned
 pufftn
-setpfxsubfeu
+setpfx
+subfeu
 tyauve
 unhazy
 unmews
