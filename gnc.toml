@@ -1,0 +1,19 @@
+# This is a TOML document. Boom.
+title = "Google name checker"
+len = 7
+
+[files]
+proxyList = "proxy"
+goodProxy = "goodproxy"
+badProxy = "badproxy"
+validName = "valid"
+noValidName = "novalid"
+words = "words"
+
+[positions]
+  [word6]
+  letters = ""
+  word = ""
+  [word7]
+  letters = ""
+  word = ""
