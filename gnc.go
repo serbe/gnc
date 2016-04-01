@@ -12,6 +12,7 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -23,8 +24,10 @@ var (
 )
 
 type app struct {
-	conf config
+	conf   config
 	strLen string
+	wg     sync.WaitGroup
+    work   int
 }
 
 type config struct {
@@ -77,6 +80,7 @@ type postResult struct {
 	Locale string `json:"Locale"`
 	Proxy  string
 	Error  error
+	Word   string
 }
 
 func getConfig() (config, error) {
@@ -142,6 +146,7 @@ func (a *app) postQuery(word string) postResult {
 		timeout = time.Duration(30 * time.Second)
 	)
 
+    result.Word = word
 	lenProxy := len(proxyList)
 	if lenProxy <= 1 {
 		fmt.Println("end proxy list")
@@ -217,18 +222,31 @@ func (a *app) getProxyList() ([]proxy, error) {
 	return proxyList, err
 }
 
+func (a *app) sendToChan(to chan<- postResult, word string) {
+    a.work++
+	defer a.wg.Done()
+	r := a.postQuery(word)
+    a.work--
+	to <- r
+}
+
+// func receiveFromChan(from <-chan postResult) postResult {
+// 	r := <-from
+// 	return r
+// }
+
 func main() {
 	var (
 		twoLetter string
 		valid     int
 	)
 	conf, err := getConfig()
-    if err != nil {
+	if err != nil {
 		fmt.Println(err)
 		panic(err)
 	}
 
-    App.conf = conf
+	App.conf = conf
 	App.strLen = fmt.Sprintf("%d", App.conf.Len)
 
 	os.Remove(App.conf.Name.GoodProxy + ".txt")
@@ -237,7 +255,9 @@ func main() {
 	existsFile(App.conf.Name.NoValidName + App.strLen + ".txt")
 	existsFile(App.conf.Name.BadProxy + ".txt")
 
-	runtime.GOMAXPROCS(4)
+	num := runtime.NumCPU()
+	// runtime.GOMAXPROCS(num)
+	ch := make(chan postResult, num-1)
 
 	lines, err := readLines(App.conf.Name.Words + ".txt")
 	if err != nil {
@@ -252,28 +272,37 @@ func main() {
 
 	for _, word := range lines {
 		if len(word) == App.conf.Len {
-			var (
-				r postResult
-			)
-			r = App.postQuery(word)
-			letters := word[0:2]
+           	App.wg.Add(1)
+            for App.work > 4 {
+                
+            } 
+			go App.sendToChan(ch, word)
+		}
+	}
+
+	go func() {
+		for r := range ch {
+            letters := r.Word[0:2]
 			if twoLetter != letters {
 				fmt.Println(letters)
 				twoLetter = letters
 			}
 			if r.Input01.Valid == "true" {
 				valid++
-				writeLine(word, App.conf.Name.ValidName+App.strLen+".txt")
-				fmt.Println("bingo: ", word)
+				writeLine(r.Word, App.conf.Name.ValidName+App.strLen+".txt")
+				fmt.Println("bingo: ", r.Word)
 				if valid == 10 {
 					panic(err)
 				}
 			} else {
 				valid = 0
-				writeLine(fmt.Sprintf("%s %v", word, r.Input01.ErrorData), App.conf.Name.NoValidName+App.strLen+".txt")
+				writeLine(fmt.Sprintf("%s %v", r.Word, r.Input01.ErrorData), App.conf.Name.NoValidName+App.strLen+".txt")
 			}
 		}
-	}
+	}()
+
+	App.wg.Wait()
+
 	for _, i := range proxyList {
 		writeLine(i.host, App.conf.Name.GoodProxy+".txt")
 	}
