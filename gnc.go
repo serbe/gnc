@@ -26,8 +26,8 @@ var (
 type app struct {
 	conf   config
 	strLen string
+	work   int
 	wg     sync.WaitGroup
-    work   int
 }
 
 type config struct {
@@ -146,7 +146,7 @@ func (a *app) postQuery(word string) postResult {
 		timeout = time.Duration(30 * time.Second)
 	)
 
-    result.Word = word
+	result.Word = word
 	lenProxy := len(proxyList)
 	if lenProxy <= 1 {
 		fmt.Println("end proxy list")
@@ -222,23 +222,30 @@ func (a *app) getProxyList() ([]proxy, error) {
 	return proxyList, err
 }
 
-func (a *app) sendToChan(to chan<- postResult, word string) {
-    a.work++
+func (a *app) query(words []string) {
+	var valid int
 	defer a.wg.Done()
-	r := a.postQuery(word)
-    a.work--
-	to <- r
+	for _, word := range words {
+		if len(word) == App.conf.Len {
+			r := a.postQuery(word)
+			if r.Input01.Valid == "true" {
+				valid++
+				writeLine(r.Word, App.conf.Name.ValidName+App.strLen+".txt")
+				fmt.Println("bingo: ", r.Word)
+				if valid == 10 {
+					panic(fmt.Errorf("maybe broken results"))
+				}
+			} else {
+				valid = 0
+				writeLine(fmt.Sprintf("%s %v", r.Word, r.Input01.ErrorData), App.conf.Name.NoValidName+App.strLen+".txt")
+			}
+		}
+	}
 }
-
-// func receiveFromChan(from <-chan postResult) postResult {
-// 	r := <-from
-// 	return r
-// }
 
 func main() {
 	var (
-		twoLetter string
-		valid     int
+		numPart = 5
 	)
 	conf, err := getConfig()
 	if err != nil {
@@ -256,13 +263,14 @@ func main() {
 	existsFile(App.conf.Name.BadProxy + ".txt")
 
 	num := runtime.NumCPU()
-	// runtime.GOMAXPROCS(num)
-	ch := make(chan postResult, num-1)
+	runtime.GOMAXPROCS(num)
 
 	lines, err := readLines(App.conf.Name.Words + ".txt")
 	if err != nil {
 		panic(err)
 	}
+
+	part := int(len(lines) / numPart)
 
 	proxyes, err := App.getProxyList()
 	if err != nil {
@@ -270,36 +278,15 @@ func main() {
 	}
 	proxyList = proxyes
 
-	for _, word := range lines {
-		if len(word) == App.conf.Len {
-           	App.wg.Add(1)
-            for App.work > 4 {
-                
-            } 
-			go App.sendToChan(ch, word)
+	for z := 0; z < numPart; z++ {
+		if z < numPart {
+			App.wg.Add(1)
+			go App.query(lines[z*part : (z+1)*part])
+		} else {
+			App.wg.Add(1)
+			go App.query(lines[z*part:])
 		}
 	}
-
-	go func() {
-		for r := range ch {
-            letters := r.Word[0:2]
-			if twoLetter != letters {
-				fmt.Println(letters)
-				twoLetter = letters
-			}
-			if r.Input01.Valid == "true" {
-				valid++
-				writeLine(r.Word, App.conf.Name.ValidName+App.strLen+".txt")
-				fmt.Println("bingo: ", r.Word)
-				if valid == 10 {
-					panic(err)
-				}
-			} else {
-				valid = 0
-				writeLine(fmt.Sprintf("%s %v", r.Word, r.Input01.ErrorData), App.conf.Name.NoValidName+App.strLen+".txt")
-			}
-		}
-	}()
 
 	App.wg.Wait()
 
