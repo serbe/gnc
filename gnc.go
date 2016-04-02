@@ -20,7 +20,8 @@ var (
 	proxyList    []proxy
 	currentProxy int
 	// App application config and more
-	App app
+	App          app
+	noValidWords []string
 )
 
 type app struct {
@@ -31,8 +32,9 @@ type app struct {
 }
 
 type config struct {
-	Len  int `json:"len"`
-	Name struct {
+	Len     int `json:"len"`
+	Workers int `json:"workers"`
+	Name    struct {
 		BadProxy    string `json:"bad_proxy"`
 		GoodProxy   string `json:"good_proxy"`
 		NoValidName string `json:"no_valid_name"`
@@ -227,26 +229,34 @@ func (a *app) query(words []string) {
 	defer a.wg.Done()
 	for _, word := range words {
 		if len(word) == App.conf.Len {
-			r := a.postQuery(word)
-			if r.Input01.Valid == "true" {
-				valid++
-				writeLine(r.Word, App.conf.Name.ValidName+App.strLen+".txt")
-				fmt.Println("bingo: ", r.Word)
-				if valid == 10 {
-					panic(fmt.Errorf("maybe broken results"))
+			if wordInNoValid(word) == false {
+				r := a.postQuery(word)
+				if r.Input01.Valid == "true" {
+					valid++
+					writeLine(r.Word, App.conf.Name.ValidName+App.strLen+".txt")
+					fmt.Println("bingo: ", r.Word)
+					if valid == 10 {
+						panic(fmt.Errorf("maybe broken results"))
+					}
+				} else {
+					valid = 0
+					writeLine(fmt.Sprintf("%s %v", r.Word, r.Input01.ErrorData), App.conf.Name.NoValidName+App.strLen+".txt")
 				}
-			} else {
-				valid = 0
-				writeLine(fmt.Sprintf("%s %v", r.Word, r.Input01.ErrorData), App.conf.Name.NoValidName+App.strLen+".txt")
 			}
 		}
 	}
 }
 
+func wordInNoValid(word string) bool {
+	for _, item := range noValidWords {
+		if item == word {
+			return true
+		}
+	}
+	return false
+}
+
 func main() {
-	var (
-		numPart = 5
-	)
 	conf, err := getConfig()
 	if err != nil {
 		fmt.Println(err)
@@ -270,7 +280,18 @@ func main() {
 		panic(err)
 	}
 
-	part := int(len(lines) / numPart)
+	noValidWordsLines, err := readLines(App.conf.Name.NoValidName + App.strLen + ".txt")
+	if err != nil {
+		panic(err)
+	}
+	for _, line := range noValidWordsLines {
+		array := strings.Split(line, " ")
+		if len(array) > 0 {
+			noValidWords = append(noValidWords, array[0])
+		}
+	}
+
+	part := int(len(lines) / App.conf.Workers)
 
 	proxyes, err := App.getProxyList()
 	if err != nil {
@@ -278,8 +299,8 @@ func main() {
 	}
 	proxyList = proxyes
 
-	for z := 0; z < numPart; z++ {
-		if z < numPart {
+	for z := 0; z < App.conf.Workers; z++ {
+		if z < App.conf.Workers {
 			App.wg.Add(1)
 			go App.query(lines[z*part : (z+1)*part])
 		} else {
