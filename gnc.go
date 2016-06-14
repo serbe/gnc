@@ -165,6 +165,7 @@ func (a *app) postQuery(word string) postResult {
 	result.Proxy = host
 
 	postURL := "https://accounts.google.com/InputValidator?resource=SignUp"
+	// postURL := "https://64.233.162.139/InputValidator?resource=SignUp"
 	data.Input01.GmailAddress = word
 	data.Input01.Input = "GmailAddress"
 	data.Locale = "ru"
