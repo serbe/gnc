@@ -245,9 +245,9 @@ func (a *app) getProxyList() ([]proxy, error) {
 func (a *app) query(lines []string) {
 	var valid int
 	defer a.wg.Done()
-	// curNum++
+	curNum++
 	// fmt.Println(100*curNum/numWords, curNum, numWords)
-	// if int(100/numWords*curNum) > proc {
+	// if int(100*curNum/numWords) > proc {
 	// 	fmt.Println(proc, "%")
 	// 	proc++
 	// }
@@ -301,8 +301,6 @@ func main() {
 		panic(err)
 	}
 
-	fmt.Println("Length of "+App.conf.Name.Words+".txt = ", len(lines))
-
 	noValidWordsLines, err := readLines(App.conf.Name.NoValidName + App.strLen + ".txt")
 	if err != nil {
 		panic(err)
@@ -344,6 +342,8 @@ func main() {
 		}
 	}
 
+	fmt.Println("Length of "+App.conf.Name.Words+".txt = ", len(lines))
+
 	os.Remove("compact" + App.conf.Name.Words + ".txt")
 	createFile("compact" + App.conf.Name.Words + ".txt")
 	writeSlice(words, "compact"+App.conf.Name.Words+".txt")
@@ -352,18 +352,21 @@ func main() {
 	// }
 	fmt.Println("Compact of "+App.conf.Name.Words+".txt = ", len(words))
 
-	fmt.Println("Complete prepare...")
-
-	numWords = len(words)
-	curNum = 0
-
-	part := int(len(words) / App.conf.Workers)
-
 	proxyes, err := App.getProxyList()
 	if err != nil {
 		panic(err)
 	}
 	proxyList = proxyes
+
+	fmt.Println("Num of proxy ", len(proxyList))
+
+	fmt.Println("Complete prepare...")
+
+	numWords = len(words)
+	curNum = 0
+	proc = 0
+
+	part := int(len(words) / App.conf.Workers)
 
 	for z := 0; z < App.conf.Workers; z++ {
 		if z < App.conf.Workers {
