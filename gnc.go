@@ -20,8 +20,11 @@ var (
 	proxyList    []proxy
 	currentProxy int
 	// App application config and more
-	App          app
-	noValidWords []string
+	App      app
+	set      map[string]struct{}
+	numWords int
+	curNum   int
+	proc     int
 )
 
 type app struct {
@@ -119,6 +122,20 @@ func writeLine(line string, filename string) error {
 
 	w := bufio.NewWriter(file)
 	fmt.Fprintln(w, line)
+	return w.Flush()
+}
+
+func writeSlice(slice []string, filename string) error {
+	file, err := os.OpenFile(filename, os.O_APPEND|os.O_WRONLY, 0600)
+	if err != nil {
+		return err
+	}
+	defer file.Close()
+
+	w := bufio.NewWriter(file)
+	for _, line := range slice {
+		fmt.Fprintln(w, line)
+	}
 	return w.Flush()
 }
 
@@ -225,39 +242,37 @@ func (a *app) getProxyList() ([]proxy, error) {
 	return proxyList, err
 }
 
-func (a *app) query(words []string) {
+func (a *app) query(lines []string) {
 	var valid int
 	defer a.wg.Done()
-	for _, word := range words {
-		if len(word) == App.conf.Len {
-			if wordInNoValid(word) == false {
-				r := a.postQuery(word)
-				if r.Input01.Valid == "true" {
-					valid++
-					writeLine(r.Word, App.conf.Name.ValidName+App.strLen+".txt")
-					fmt.Println("bingo: ", r.Word)
-					if valid == 10 {
-						panic(fmt.Errorf("maybe broken results"))
-					}
-				} else {
-					valid = 0
-					writeLine(fmt.Sprintf("%s %v", r.Word, r.Input01.ErrorData), App.conf.Name.NoValidName+App.strLen+".txt")
-				}
+	// curNum++
+	// fmt.Println(100*curNum/numWords, curNum, numWords)
+	// if int(100/numWords*curNum) > proc {
+	// 	fmt.Println(proc, "%")
+	// 	proc++
+	// }
+	for _, word := range lines {
+		r := a.postQuery(word)
+		if r.Input01.Valid == "true" {
+			valid++
+			writeLine(r.Word, App.conf.Name.ValidName+App.strLen+".txt")
+			fmt.Println("bingo: ", r.Word)
+			if valid == 10 {
+				panic(fmt.Errorf("maybe broken results"))
 			}
+		} else {
+			valid = 0
+			writeLine(fmt.Sprintf("%s %v", r.Word, r.Input01.ErrorData), App.conf.Name.NoValidName+App.strLen+".txt")
 		}
 	}
-}
-
-func wordInNoValid(word string) bool {
-	for _, item := range noValidWords {
-		if item == word {
-			return true
-		}
-	}
-	return false
 }
 
 func main() {
+	var (
+		noValidWords []string
+		words        []string
+	)
+
 	conf, err := getConfig()
 	if err != nil {
 		fmt.Println(err)
@@ -281,18 +296,68 @@ func main() {
 		panic(err)
 	}
 
+	valids, err := readLines(App.conf.Name.ValidName + App.strLen + ".txt")
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Println("Length of "+App.conf.Name.Words+".txt = ", len(lines))
+
 	noValidWordsLines, err := readLines(App.conf.Name.NoValidName + App.strLen + ".txt")
 	if err != nil {
 		panic(err)
 	}
+
+	fmt.Println("Length of "+App.conf.Name.NoValidName+App.strLen+".txt = ", len(noValidWordsLines))
+
 	for _, line := range noValidWordsLines {
 		array := strings.Split(line, " ")
 		if len(array) > 0 {
 			noValidWords = append(noValidWords, array[0])
 		}
 	}
+	for _, valid := range valids {
+		if len(valid) == App.conf.Len {
+			noValidWords = append(noValidWords, valid)
+		}
+	}
 
-	part := int(len(lines) / App.conf.Workers)
+	os.Remove("compact" + App.conf.Name.NoValidName + App.strLen + ".txt")
+	createFile("compact" + App.conf.Name.NoValidName + App.strLen + ".txt")
+	writeSlice(noValidWords, "compact"+App.conf.Name.NoValidName+App.strLen+".txt")
+	// for _, noValid := range noValidWords {
+	// 	writeLine(noValid, "compact"+App.conf.Name.NoValidName+App.strLen+".txt")
+	// }
+	fmt.Println("Compact "+App.conf.Name.NoValidName+App.strLen+".txt = ", len(noValidWords))
+
+	set = make(map[string]struct{}, len(noValidWords))
+	for _, s := range noValidWords {
+		set[s] = struct{}{}
+	}
+
+	for _, word := range lines {
+		if len(word) == App.conf.Len {
+			_, ok := set[word]
+			if ok == false {
+				words = append(words, word)
+			}
+		}
+	}
+
+	os.Remove("compact" + App.conf.Name.Words + ".txt")
+	createFile("compact" + App.conf.Name.Words + ".txt")
+	writeSlice(words, "compact"+App.conf.Name.Words+".txt")
+	// for _, word := range words {
+	// 	writeLine(word, "compact"+App.conf.Name.Words+".txt")
+	// }
+	fmt.Println("Compact of "+App.conf.Name.Words+".txt = ", len(words))
+
+	fmt.Println("Complete prepare...")
+
+	numWords = len(words)
+	curNum = 0
+
+	part := int(len(words) / App.conf.Workers)
 
 	proxyes, err := App.getProxyList()
 	if err != nil {
@@ -303,10 +368,10 @@ func main() {
 	for z := 0; z < App.conf.Workers; z++ {
 		if z < App.conf.Workers {
 			App.wg.Add(1)
-			go App.query(lines[z*part : (z+1)*part])
+			go App.query(words[z*part : (z+1)*part])
 		} else {
 			App.wg.Add(1)
-			go App.query(lines[z*part:])
+			go App.query(words[z*part:])
 		}
 	}
 
