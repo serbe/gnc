@@ -31,7 +31,6 @@ type app struct {
 	conf   config
 	strLen string
 	work   int
-	wg     sync.WaitGroup
 }
 
 type config struct {
@@ -242,9 +241,8 @@ func (a *app) getProxyList() ([]proxy, error) {
 	return proxyList, err
 }
 
-func (a *app) query(lines []string) {
+func (a *app) query(lines []string, wg *sync.WaitGroup) {
 	var valid int
-	defer a.wg.Done()
 	curNum++
 	// fmt.Println(100*curNum/numWords, curNum, numWords)
 	// if int(100*curNum/numWords) > proc {
@@ -265,12 +263,14 @@ func (a *app) query(lines []string) {
 			writeLine(fmt.Sprintf("%s %v", r.Word, r.Input01.ErrorData), App.conf.Name.NoValidName+App.strLen+".txt")
 		}
 	}
+	wg.Done()
 }
 
 func main() {
 	var (
 		noValidWords []string
 		words        []string
+		wg           sync.WaitGroup
 	)
 
 	conf, err := getConfig()
@@ -370,15 +370,15 @@ func main() {
 
 	for z := 0; z < App.conf.Workers; z++ {
 		if z < App.conf.Workers {
-			App.wg.Add(1)
-			go App.query(words[z*part : (z+1)*part])
+			wg.Add(1)
+			go App.query(words[z*part:(z+1)*part], &wg)
 		} else {
-			App.wg.Add(1)
-			go App.query(words[z*part:])
+			wg.Add(1)
+			go App.query(words[z*part:], &wg)
 		}
 	}
 
-	App.wg.Wait()
+	wg.Wait()
 
 	for _, i := range proxyList {
 		writeLine(i.host, App.conf.Name.GoodProxy+".txt")
