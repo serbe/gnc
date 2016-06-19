@@ -1,7 +1,7 @@
 {
     "title": "Google name checker",
-    "len": 6,
-    "workers": 16,
+    "len": 7,
+    "workers": 1,
     "name": {
         "proxy_list": "proxy",
         "good_proxy": "goodproxy",
