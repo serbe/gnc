@@ -6,8 +6,8 @@
         "proxy_list": "proxy",
         "good_proxy": "goodproxy",
         "bad_proxy": "badproxy",
-        "valid_name": "valid",
-        "no_valid_name": "novalid",
+        "valid_name": "valid_",
+        "no_valid_name": "novalid_",
         "words": "nums"
     },
     "position": {

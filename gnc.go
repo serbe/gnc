@@ -242,6 +242,7 @@ func (a *app) getProxyList() ([]proxy, error) {
 }
 
 func (a *app) query(lines []string, wg *sync.WaitGroup) {
+	defer wg.Done()
 	var valid int
 	curNum++
 	// fmt.Println(100*curNum/numWords, curNum, numWords)
@@ -263,7 +264,6 @@ func (a *app) query(lines []string, wg *sync.WaitGroup) {
 			writeLine(fmt.Sprintf("%s %v", r.Word, r.Input01.ErrorData), App.conf.Name.NoValidName+App.strLen+".txt")
 		}
 	}
-	wg.Done()
 }
 
 func main() {
@@ -284,8 +284,8 @@ func main() {
 
 	os.Remove(App.conf.Name.GoodProxy + ".txt")
 	createFile(App.conf.Name.GoodProxy + ".txt")
-	existsFile(App.conf.Name.ValidName + App.strLen + ".txt")
-	existsFile(App.conf.Name.NoValidName + App.strLen + ".txt")
+	existsFile(App.conf.Name.ValidName + App.conf.Name.Words + "_" + App.strLen + ".txt")
+	existsFile(App.conf.Name.NoValidName + App.conf.Name.Words + "_" + App.strLen + ".txt")
 	existsFile(App.conf.Name.BadProxy + ".txt")
 
 	num := runtime.NumCPU()
@@ -296,17 +296,17 @@ func main() {
 		panic(err)
 	}
 
-	valids, err := readLines(App.conf.Name.ValidName + App.strLen + ".txt")
+	valids, err := readLines(App.conf.Name.ValidName + App.conf.Name.Words + "_" + App.strLen + ".txt")
 	if err != nil {
 		panic(err)
 	}
 
-	noValidWordsLines, err := readLines(App.conf.Name.NoValidName + App.strLen + ".txt")
+	noValidWordsLines, err := readLines(App.conf.Name.NoValidName + App.conf.Name.Words + "_" + App.strLen + ".txt")
 	if err != nil {
 		panic(err)
 	}
 
-	fmt.Println("Length of "+App.conf.Name.NoValidName+App.strLen+".txt = ", len(noValidWordsLines))
+	fmt.Println("Length of "+App.conf.Name.NoValidName+App.conf.Name.Words+"_"+App.strLen+".txt = ", len(noValidWordsLines))
 
 	for _, line := range noValidWordsLines {
 		array := strings.Split(line, " ")
@@ -320,13 +320,10 @@ func main() {
 		}
 	}
 
-	os.Remove("compact" + App.conf.Name.NoValidName + App.strLen + ".txt")
-	createFile("compact" + App.conf.Name.NoValidName + App.strLen + ".txt")
-	writeSlice(noValidWords, "compact"+App.conf.Name.NoValidName+App.strLen+".txt")
-	// for _, noValid := range noValidWords {
-	// 	writeLine(noValid, "compact"+App.conf.Name.NoValidName+App.strLen+".txt")
-	// }
-	fmt.Println("Compact "+App.conf.Name.NoValidName+App.strLen+".txt = ", len(noValidWords))
+	os.Remove("compact" + App.conf.Name.NoValidName + App.conf.Name.Words + "_" + App.strLen + ".txt")
+	createFile("compact" + App.conf.Name.NoValidName + App.conf.Name.Words + "_" + App.strLen + ".txt")
+	writeSlice(noValidWords, "compact"+App.conf.Name.NoValidName+App.conf.Name.Words+"_"+App.strLen+".txt")
+	fmt.Println("Compact "+App.conf.Name.NoValidName+App.conf.Name.Words+"_"+App.strLen+".txt = ", len(noValidWords))
 
 	set = make(map[string]struct{}, len(noValidWords))
 	for _, s := range noValidWords {
@@ -347,9 +344,6 @@ func main() {
 	os.Remove("compact" + App.conf.Name.Words + ".txt")
 	createFile("compact" + App.conf.Name.Words + ".txt")
 	writeSlice(words, "compact"+App.conf.Name.Words+".txt")
-	// for _, word := range words {
-	// 	writeLine(word, "compact"+App.conf.Name.Words+".txt")
-	// }
 	fmt.Println("Compact of "+App.conf.Name.Words+".txt = ", len(words))
 
 	proxyes, err := App.getProxyList()
