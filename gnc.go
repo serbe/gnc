@@ -254,14 +254,14 @@ func (a *app) query(lines []string, wg *sync.WaitGroup) {
 		r := a.postQuery(word)
 		if r.Input01.Valid == "true" {
 			valid++
-			writeLine(r.Word, App.conf.Name.ValidName+App.strLen+".txt")
+			writeLine(r.Word, App.conf.Name.ValidName+App.conf.Name.Words+"_"+App.strLen+".txt")
 			fmt.Println("bingo: ", r.Word)
 			if valid == 10 {
 				panic(fmt.Errorf("maybe broken results"))
 			}
 		} else {
 			valid = 0
-			writeLine(fmt.Sprintf("%s %v", r.Word, r.Input01.ErrorData), App.conf.Name.NoValidName+App.strLen+".txt")
+			writeLine(fmt.Sprintf("%s %v", r.Word, r.Input01.ErrorData), App.conf.Name.NoValidName+App.conf.Name.Words+"_"+App.strLen+".txt")
 		}
 	}
 }
