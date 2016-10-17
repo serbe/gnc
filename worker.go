@@ -10,10 +10,10 @@ func worker(id int, jobs <-chan string, results chan<- postResult) {
 
 func parseResult(r postResult) bool {
 	if r.Input01.Valid == "true" {
-		writeLine(r.Word, "words/"+App.conf.Name.ValidName+App.conf.Name.Words+"_"+App.strLen+".txt")
+		writeLine(r.Word, "words/"+goodWordsName)
 		fmt.Println("bingo: ", r.Word)
 		return true
 	}
-	writeLine(fmt.Sprintf("%s %v", r.Word, r.Input01.ErrorData), "words/"+App.conf.Name.NoValidName+App.conf.Name.Words+"_"+App.strLen+".txt")
+	writeLine(fmt.Sprintf("%s %v", r.Word, r.Input01.ErrorData), "words/"+badWordsName)
 	return false
 }

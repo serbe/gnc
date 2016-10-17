@@ -13,23 +13,12 @@ import (
 )
 
 var (
-	proxyList    []proxy
-	currentProxy int
-	// App application config and more
-	App          app
-	set          map[string]struct{}
-	numWords     int
-	curNum       int
-	proc         int
-	noValidWords []string
-	words        []string
+	proxyList     []proxy
+	currentProxy  int
+	words         []string
+	goodWordsName string
+	badWordsName  string
 )
-
-type app struct {
-	conf   config
-	strLen string
-	work   int
-}
 
 type proxy struct {
 	host    string
@@ -108,7 +97,7 @@ func postQuery(word string) postResult {
 	resp, err := client.Do(req)
 	if err != nil {
 		if quality > 3 {
-			writeLine(host, "words/"+App.conf.Name.BadProxy+".txt")
+			writeLine(host, "proxy/bad_proxy.txt")
 			proxyList = append(proxyList[:currentProxy], proxyList[currentProxy+1:]...)
 
 		}
@@ -134,20 +123,16 @@ func postQuery(word string) postResult {
 }
 
 func main() {
-	err := prepare()
+	numWorkers, err := prepare()
 	if err != nil {
 		fmt.Println(err)
 		panic(err)
 	}
 
-	numWords = len(words)
-	curNum = 0
-	proc = 0
-
 	jobs := make(chan string, len(words))
 	results := make(chan postResult, len(words))
 
-	for w := 1; w <= App.conf.Workers; w++ {
+	for w := 1; w <= numWorkers; w++ {
 		go worker(w, jobs, results)
 	}
 

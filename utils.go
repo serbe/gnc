@@ -105,8 +105,8 @@ func replaceFile(file string) bool {
 	return existsFile(file)
 }
 
-func getProxyList() ([]proxy, error) {
-	dat, err := ioutil.ReadFile("proxy/" + App.conf.Name.ProxyList + ".txt")
+func getProxyList(name string) ([]proxy, error) {
+	dat, err := ioutil.ReadFile("proxy/" + name + ".txt")
 	dats := strings.Split(strings.TrimSuffix(string(dat), "\n"), "\n")
 	dats = removeDuplicates(dats)
 	var proxyList []proxy

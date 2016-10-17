@@ -1,105 +1,79 @@
 package main
 
 import (
-	"encoding/json"
+	"flag"
 	"fmt"
-	"io/ioutil"
 	"runtime"
+	"strconv"
 	"strings"
 )
 
-type config struct {
-	Len     int `json:"len"`
-	Workers int `json:"workers"`
-	Name    struct {
-		BadProxy    string `json:"bad_proxy"`
-		GoodProxy   string `json:"good_proxy"`
-		NoValidName string `json:"no_valid_name"`
-		ProxyList   string `json:"proxy_list"`
-		ValidName   string `json:"valid_name"`
-		Words       string `json:"words"`
-	} `json:"name"`
-	Position struct {
-		Word6 struct {
-			Letters string `json:"letters"`
-			Word    string `json:"word"`
-		} `json:"word6"`
-		Word7 struct {
-			Letters string `json:"letters"`
-			Word    string `json:"word"`
-		} `json:"word7"`
-	} `json:"position"`
-	Title string `json:"title"`
-}
+func prepare() (int, error) {
+	var (
+		set      map[string]struct{}
+		badWords []string
+	)
 
-func getConfig() (config, error) {
-	c := config{}
-	file, err := ioutil.ReadFile("./config.json")
-	if err != nil {
-		return c, err
-	}
-	err = json.Unmarshal(file, &c)
-	return c, err
-}
-
-func prepare() error {
 	num := runtime.NumCPU()
 	runtime.GOMAXPROCS(num)
 
-	conf, err := getConfig()
+	wordsName := flag.String("words", "words", "Name of file contains words")
+	wordLen := flag.Int64("l", 6, "Word length")
+	proxyName := flag.String("p", "proxy", "Name of proxy list file")
+	numWorkers := flag.Int("w", 15, "Number of workers")
+
+	flag.Parse()
+
+	lenStr := strconv.FormatInt(*wordLen, 10)
+
+	goodWordsName = "good_" + *wordsName + "_" + lenStr + ".txt"
+	badWordsName = "bad_" + *wordsName + "_" + lenStr + ".txt"
+
+	replaceFile("proxy/" + *proxyName + ".txt")
+	existsFile(goodWordsName)
+	existsFile(badWordsName)
+	existsFile("proxy/bad_proxy.txt")
+
+	lines, err := readLines("words/" + *wordsName + ".txt")
 	if err != nil {
-		fmt.Println(err)
-		return err
+		return *numWorkers, err
 	}
 
-	App.conf = conf
-	App.strLen = fmt.Sprintf("%d", App.conf.Len)
-
-	replaceFile("proxy/" + App.conf.Name.GoodProxy + ".txt")
-	existsFile("words/" + App.conf.Name.ValidName + App.conf.Name.Words + "_" + App.strLen + ".txt")
-	existsFile("words/" + App.conf.Name.NoValidName + App.conf.Name.Words + "_" + App.strLen + ".txt")
-	existsFile("proxy/" + App.conf.Name.BadProxy + ".txt")
-
-	lines, err := readLines("words/" + App.conf.Name.Words + ".txt")
+	goodWordsLines, err := readLines("words/" + goodWordsName)
 	if err != nil {
-		return err
+		return *numWorkers, err
 	}
 
-	valids, err := readLines("words/" + App.conf.Name.ValidName + App.conf.Name.Words + "_" + App.strLen + ".txt")
+	badWordsLines, err := readLines("words/" + badWordsName)
 	if err != nil {
-		return err
+		return *numWorkers, err
 	}
 
-	noValidWordsLines, err := readLines("words/" + App.conf.Name.NoValidName + App.conf.Name.Words + "_" + App.strLen + ".txt")
-	if err != nil {
-		return err
-	}
+	fmt.Println("Length of "+badWordsName+" = ", len(badWordsLines))
 
-	fmt.Println("Length of "+App.conf.Name.NoValidName+App.conf.Name.Words+"_"+App.strLen+".txt = ", len(noValidWordsLines))
-
-	for _, line := range noValidWordsLines {
+	for _, line := range badWordsLines {
 		array := strings.Split(line, " ")
 		if len(array) > 0 {
-			noValidWords = append(noValidWords, array[0])
+			badWords = append(badWords, array[0])
 		}
 	}
-	for _, valid := range valids {
-		if len(valid) == App.conf.Len {
-			noValidWords = append(noValidWords, valid)
+	for _, valid := range goodWordsLines {
+		if len(valid) == int(*wordLen) {
+			badWords = append(badWords, valid)
 		}
 	}
 
-	replaceFile("words/" + "compact" + App.conf.Name.NoValidName + App.conf.Name.Words + "_" + App.strLen + ".txt")
-	writeSlice(noValidWords, "words/"+"compact"+App.conf.Name.NoValidName+App.conf.Name.Words+"_"+App.strLen+".txt")
-	fmt.Println("Compact "+App.conf.Name.NoValidName+App.conf.Name.Words+"_"+App.strLen+".txt = ", len(noValidWords))
+	replaceFile("words/" + "compact_" + badWordsName)
+	writeSlice(badWords, "words/"+"compact_"+badWordsName)
+	fmt.Println("Compact "+badWordsName+" = ", len(badWords))
 
-	set = make(map[string]struct{}, len(noValidWords))
-	for _, s := range noValidWords {
+	set = make(map[string]struct{}, len(badWords))
+	for _, s := range badWords {
 		set[s] = struct{}{}
 	}
 
 	for _, word := range lines {
-		if len(word) == App.conf.Len {
+		if len(word) == int(*wordLen) {
 			_, ok := set[word]
 			if ok == false {
 				words = append(words, word)
@@ -107,13 +81,13 @@ func prepare() error {
 		}
 	}
 
-	fmt.Println("Length of "+App.conf.Name.Words+".txt = ", len(lines))
+	fmt.Println("Length of "+*wordsName+".txt = ", len(lines))
 
-	replaceFile("words/" + "compact" + App.conf.Name.Words + ".txt")
-	writeSlice(words, "words/"+"compact"+App.conf.Name.Words+".txt")
-	fmt.Println("Compact of "+App.conf.Name.Words+".txt = ", len(words))
+	replaceFile("words/" + "compact_" + *wordsName + ".txt")
+	writeSlice(words, "words/"+"compact_"+*wordsName+".txt")
+	fmt.Println("Compact of "+*wordsName+".txt = ", len(words))
 
-	proxyes, err := getProxyList()
+	proxyes, err := getProxyList(*proxyName)
 	if err != nil {
 		panic(err)
 	}
@@ -123,5 +97,5 @@ func prepare() error {
 
 	fmt.Println("Complete prepare...")
 
-	return nil
+	return *numWorkers, nil
 }
