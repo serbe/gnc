@@ -1,6 +1,6 @@
 {
     "title": "Google name checker",
-    "len": 7,
+    "len": 6,
     "workers": 1,
     "name": {
         "proxy_list": "proxy",
@@ -8,7 +8,7 @@
         "bad_proxy": "badproxy",
         "valid_name": "valid_",
         "no_valid_name": "novalid_",
-        "words": "nums"
+        "words": "words"
     },
     "position": {
         "word6": {
