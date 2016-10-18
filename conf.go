@@ -29,10 +29,10 @@ func prepare() (int, error) {
 	goodWordsName = "good_" + *wordsName + "_" + lenStr + ".txt"
 	badWordsName = "bad_" + *wordsName + "_" + lenStr + ".txt"
 
-	replaceFile("proxy/" + *proxyName + ".txt")
-	existsFile(goodWordsName)
-	existsFile(badWordsName)
-	existsFile("proxy/bad_proxy.txt")
+	existsFile("proxy/" + *proxyName + ".txt")
+	existsFile("words/" + goodWordsName)
+	existsFile("words/" + badWordsName)
+	replaceFile("proxy/bad_proxy.txt")
 
 	lines, err := readLines("words/" + *wordsName + ".txt")
 	if err != nil {

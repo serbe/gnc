@@ -45,19 +45,11 @@ type postResult struct {
 		Valid string `json:"Valid"`
 	} `json:"input01"`
 	Locale string `json:"Locale"`
-	Proxy  string
 	Error  error
 	Word   string
 }
 
-func postQuery(word string) postResult {
-	var (
-		data    postData
-		result  postResult
-		timeout = time.Duration(10 * time.Second)
-	)
-
-	result.Word = word
+func getPostString(word string) (string, error) {
 	lenProxy := len(proxyList)
 	if lenProxy <= 1 {
 		fmt.Println("end proxy list")
@@ -71,18 +63,11 @@ func postQuery(word string) postResult {
 	quality := proxyList[currentProxy].quality
 
 	urlProxy := &url.URL{Host: host}
-	result.Proxy = host
 
-	postURL := "https://accounts.google.com/InputValidator?resource=SignUp"
-	// postURL := "https://64.233.162.139/InputValidator?resource=SignUp"
-	data.Input01.GmailAddress = word
-	data.Input01.Input = "GmailAddress"
-	data.Locale = "ru"
-	postJ, err := json.Marshal(data)
-	if err != nil {
-		result.Error = err
-		return result
-	}
+	// postURL := "https://accounts.google.com/InputValidator?resource=SignUp"
+	postURL := "https://173.194.222.84:443/InputValidator?resource=SignUp"
+
+	timeout := time.Duration(10 * time.Second)
 
 	client := &http.Client{
 		Timeout: timeout,
@@ -91,34 +76,58 @@ func postQuery(word string) postResult {
 		},
 	}
 
-	req, _ := http.NewRequest("POST", postURL, bytes.NewBufferString(string(postJ)))
+	var data postData
+
+	data.Input01.GmailAddress = word
+	data.Input01.Input = "GmailAddress"
+	data.Locale = "ru"
+	postData, err := json.Marshal(data)
+	if err != nil {
+		return "", err
+	}
+
+	req, _ := http.NewRequest("POST", postURL, bytes.NewBufferString(string(postData)))
 	req.Header.Add("Content-Type", "application/json")
-	req.Header.Add("Content-Length", strconv.Itoa(len(string(postJ))))
+	req.Header.Add("Content-Length", strconv.Itoa(len(string(postData))))
 	resp, err := client.Do(req)
 	if err != nil {
 		if quality > 3 {
 			writeLine(host, "proxy/bad_proxy.txt")
 			proxyList = append(proxyList[:currentProxy], proxyList[currentProxy+1:]...)
-
 		}
-		result.Error = err
-		return result
+		return "", err
 	}
 	defer resp.Body.Close()
 	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return "", err
+	}
+
 	jsonResult, err := json.Marshal(string(body))
 	if err != nil {
-		result.Error = err
-		return result
+		return "", err
 	}
+
 	jsonResultString, err := strconv.Unquote(string(jsonResult))
+
+	return jsonResultString, err
+}
+
+func postQuery(word string) postResult {
+	var (
+		result postResult
+	)
+
+	jsonResultString, err := getPostString(word)
 	if err != nil {
 		result.Error = err
 		return result
 	}
 
 	err = json.Unmarshal([]byte(jsonResultString), &result)
+	result.Word = word
 	result.Error = err
+
 	return result
 }
 
