@@ -33,6 +33,7 @@ func prepare() (int, error) {
 	existsFile("words/" + goodWordsName)
 	existsFile("words/" + badWordsName)
 	replaceFile("proxy/bad_proxy.txt")
+	replaceFile("logs.txt")
 
 	lines, err := readLines("words/" + *wordsName + ".txt")
 	if err != nil {

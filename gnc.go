@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"net/url"
 	"os"
@@ -64,8 +65,8 @@ func getPostString(word string) (string, error) {
 
 	urlProxy := &url.URL{Host: host}
 
-	// postURL := "https://accounts.google.com/InputValidator?resource=SignUp"
-	postURL := "https://173.194.222.84:443/InputValidator?resource=SignUp"
+	postURL := "https://accounts.google.com/InputValidator?resource=SignUp"
+	// postURL := "https://173.194.222.84:443/InputValidator?resource=SignUp"
 
 	timeout := time.Duration(10 * time.Second)
 
@@ -103,6 +104,10 @@ func getPostString(word string) (string, error) {
 		return "", err
 	}
 
+	writeLine(host+" : "+word+"\n", "log.txt")
+	writeLine(string(postData)+"\n", "log.txt")
+	writeLine(string(body)+"\n", "log.txt")
+
 	jsonResult, err := json.Marshal(string(body))
 	if err != nil {
 		return "", err
@@ -120,6 +125,7 @@ func postQuery(word string) postResult {
 
 	jsonResultString, err := getPostString(word)
 	if err != nil {
+		log.Println(err)
 		result.Error = err
 		return result
 	}
