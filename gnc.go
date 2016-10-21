@@ -1,21 +1,5 @@
 package main
 
-var (
-	app globalValues
-)
-
-type globalValues struct {
-	firstNames   []string
-	lastNames    []string
-	words        []string
-	proxyList    []string
-	name         string
-	proxyName    string
-	length       string
-	currentProxy int
-	workers      int
-}
-
 func main() {
 	prepare()
 
@@ -34,4 +18,6 @@ func main() {
 		r := <-results
 		parseResult(r)
 	}
+
+	saveProxyList()
 }

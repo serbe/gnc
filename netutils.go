@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"net/url"
 	"strconv"
@@ -47,54 +46,72 @@ func getPostString(word string) (string, error) {
 	return string(pbyte), err
 }
 
-func getPost(word string) (string, error) {
+func getPostBody(word string) ([]byte, error) {
 	proxy := getProxy()
 
 	postURL := "https://accounts.google.com/InputValidator?resource=SignUp"
 	// postURL := "https://64.233.164.84:443/InputValidator?resource=SignUp"
 
-	timeout := time.Duration(10 * time.Second)
-
 	client := &http.Client{
-		Timeout: timeout,
+		Timeout: time.Duration(app.timeout) * time.Second,
 		Transport: &http.Transport{
 			Proxy: http.ProxyURL(&url.URL{
-				Host: proxy,
+				Host: proxy.host,
 			}),
 		},
 	}
 
-	postString, err := getPostString(word)
+	postString, _ := getPostString(word)
 
 	req, _ := http.NewRequest("POST", postURL, bytes.NewBufferString(postString))
 	req.Header.Add("Content-Type", "application/json")
 	req.Header.Add("Content-Length", strconv.Itoa(len(postString)))
 	resp, err := client.Do(req)
 	if err != nil {
-		// if quality > 3 {
-		// 	writeLine(host, "proxy/bad_proxy.txt")
-		// 	proxyList = append(proxyList[:currentProxy], proxyList[currentProxy+1:]...)
-		// }
-		return "", err
+		deleteProxy(proxy)
+		return nil, err
 	}
 	defer resp.Body.Close()
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		return "", err
+		deleteProxy(proxy)
+		return nil, err
+	}
+	return body, nil
+}
+
+func getResponse(word string) string {
+	var (
+		successJSON bool
+		jsonBytes   []byte
+	)
+	for !successJSON {
+		var (
+			successGetBody bool
+			body           []byte
+			err            error
+		)
+		for !successGetBody {
+			// fmt.Println("tryGetBody", word)
+			body, err = getPostBody(word)
+			if err == nil {
+				successGetBody = true
+			} else {
+				// fmt.Println("error tryGetBody", err)
+			}
+		}
+		// fmt.Println("jsonBytes", word)
+		jsonBytes, err = json.Marshal(string(body))
+		if err == nil {
+			successJSON = true
+		} else {
+			// fmt.Println("error jsonBytes", err)
+		}
 	}
 
-	writeLine(proxy+" : "+word+"\n", "log.txt")
-	writeLine(postString+"\n", "log.txt")
-	writeLine(string(body)+"\n", "log.txt")
+	jsonString, _ := strconv.Unquote(string(jsonBytes))
 
-	jsonResult, err := json.Marshal(string(body))
-	if err != nil {
-		return "", err
-	}
-
-	jsonResultString, err := strconv.Unquote(string(jsonResult))
-
-	return jsonResultString, err
+	return jsonString
 }
 
 func postQuery(word string) postResult {
@@ -102,14 +119,9 @@ func postQuery(word string) postResult {
 		result postResult
 	)
 
-	postString, err := getPost(word)
-	if err != nil {
-		log.Println(err)
-		result.Error = err
-		return result
-	}
+	response := getResponse(word)
 
-	err = json.Unmarshal([]byte(postString), &result)
+	err := json.Unmarshal([]byte(response), &result)
 	result.Word = word
 	result.Error = err
 

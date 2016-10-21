@@ -19,6 +19,17 @@ func dedupeData(xs *[]string) {
 	*xs = (*xs)[:j]
 }
 
+func removeData(xs *[]string, data string) {
+	j := 0
+	for i, x := range *xs {
+		if x != data {
+			(*xs)[j] = (*xs)[i]
+			j++
+		}
+	}
+	*xs = (*xs)[:j]
+}
+
 func readLines(path string) []string {
 	file, err := os.Open(path)
 	if err != nil {
@@ -84,4 +95,19 @@ func createFile(file string) bool {
 func replaceFile(file string) bool {
 	_ = os.Remove(file)
 	return existsFile(file)
+}
+
+func parseResult(r postResult) bool {
+	if r.Input01.Valid == "true" {
+		writeLine(r.Word, "words/good_"+app.name+"_"+app.length+".txt")
+		fmt.Println("bingo: ", r.Word)
+		return true
+	}
+	writeLine(fmt.Sprintf("%s", r.Word), "words/bad_"+app.name+"_"+app.length+".txt")
+	if len(r.Input01.ErrorData) > 0 {
+		for _, w := range r.Input01.ErrorData {
+			writeLine(fmt.Sprintf("%s", w), "words/hint_"+app.name+"_"+app.length+".txt")
+		}
+	}
+	return false
 }

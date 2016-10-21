@@ -7,16 +7,16 @@ type name struct {
 	last  string
 }
 
-func getFirstNameList() []string {
+func getFirstNameList() {
 	firstNames := readLines("names/firstnames.txt")
 	dedupeData(&firstNames)
-	return firstNames
+	app.firstNames = firstNames
 }
 
-func getLastNameList() []string {
+func getLastNameList() {
 	lastNames := readLines("names/lastnames.txt")
 	dedupeData(&lastNames)
-	return lastNames
+	app.lastNames = lastNames
 }
 
 func getFirstName() string {

@@ -9,12 +9,12 @@ import (
 func createWordFiles() {
 	existsFile("words/good_" + app.name + "_" + app.length + ".txt")
 	existsFile("words/bad_" + app.name + "_" + app.length + ".txt")
-	existsFile("words/hint" + app.name + "_" + app.length + ".txt")
+	existsFile("words/hint_" + app.name + "_" + app.length + ".txt")
 	replaceFile("words/" + "compact_bad_" + app.name + "_" + app.length + ".txt")
 	replaceFile("words/" + "compact_" + app.name + ".txt")
 }
 
-func getWords() []string {
+func getWords() {
 	var (
 		badWords []string
 		words    []string
@@ -65,7 +65,8 @@ func getWords() []string {
 
 	fmt.Println("Length of "+app.name+".txt = ", len(lines))
 	writeSlice(words, "words/"+"compact_"+app.name+".txt")
-	fmt.Println("Compact of "+app.name+".txt = ", len(app.words))
 
-	return words
+	app.words = words
+
+	fmt.Println("Compact of "+app.name+".txt = ", len(app.words))
 }
