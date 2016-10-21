@@ -6,11 +6,13 @@ import (
 	"math/rand"
 	"runtime"
 	"strconv"
+	"sync"
 	"time"
 )
 
 var (
-	app globalValues
+	app   globalValues
+	mutex = &sync.Mutex{}
 )
 
 type globalValues struct {

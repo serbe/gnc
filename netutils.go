@@ -68,13 +68,13 @@ func getPostBody(word string) ([]byte, error) {
 	req.Header.Add("Content-Length", strconv.Itoa(len(postString)))
 	resp, err := client.Do(req)
 	if err != nil {
-		deleteProxy(proxy)
+		removeProxy(&app.proxyList, proxy)
 		return nil, err
 	}
 	defer resp.Body.Close()
 	body, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
-		deleteProxy(proxy)
+		removeProxy(&app.proxyList, proxy)
 		return nil, err
 	}
 	return body, nil

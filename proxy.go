@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"regexp"
 	"strings"
+	"time"
 )
 
 var (
@@ -13,7 +14,7 @@ var (
 
 type proxy struct {
 	host string
-	good bool
+	time time.Time
 }
 
 func createProxyFiles() {
@@ -47,7 +48,7 @@ func getProxyList() {
 	for _, l := range proxyList {
 		var pr proxy
 		pr.host = l
-		pr.good = true
+		pr.time = time.Now()
 		list = append(list, pr)
 	}
 
@@ -55,6 +56,7 @@ func getProxyList() {
 }
 
 func getProxy() proxy {
+	mutex.Lock()
 	lenProxy := len(app.proxyList)
 	var findGoodProxy bool
 	for !findGoodProxy {
@@ -62,26 +64,32 @@ func getProxy() proxy {
 		if app.currentProxy >= lenProxy {
 			app.currentProxy = 0
 		}
-		if app.proxyList[app.currentProxy].good == true {
+		t := time.Now()
+		if t.Sub(app.proxyList[app.currentProxy].time) > time.Duration(10*time.Second) {
 			findGoodProxy = true
 		}
 	}
+	app.proxyList[app.currentProxy].time = time.Now()
+	mutex.Unlock()
 	return app.proxyList[app.currentProxy]
-}
-
-func deleteProxy(proxy proxy) {
-	for i, p := range app.proxyList {
-		if p.host == proxy.host {
-			app.proxyList[i].good = false
-		}
-	}
-	writeLine(proxy.host, "proxy/bad_"+app.proxyName+".txt")
 }
 
 func saveProxyList() {
 	for _, p := range app.proxyList {
-		if p.good {
-			writeLine(p.host, "proxy/good_"+app.proxyName+".txt")
+		writeLine(p.host, "proxy/good_"+app.proxyName+".txt")
+	}
+}
+
+func removeProxy(proxyList *[]proxy, proxy proxy) {
+	mutex.Lock()
+	j := 0
+	for i, x := range *proxyList {
+		if x.host != proxy.host {
+			(*proxyList)[j] = (*proxyList)[i]
+			j++
 		}
 	}
+	*proxyList = (*proxyList)[:j]
+	mutex.Unlock()
+	writeLine(proxy.host, "proxy/bad_"+app.proxyName+".txt")
 }
