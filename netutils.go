@@ -41,7 +41,7 @@ func getPostString(word string) (string, error) {
 	data.Input01.LastName = getLastName()
 	data.Input01.GmailAddress = word
 	data.Input01.Input = "GmailAddress"
-	data.Locale = "ru"
+	data.Locale = "en"
 	pbyte, err := json.Marshal(data)
 	return string(pbyte), err
 }
